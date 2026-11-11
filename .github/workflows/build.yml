@@ -1,0 +1,45 @@
+
+name: VideoTok APK Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extract Project
+        run: |
+          unzip -q videotok_app.zip -d /tmp/videotok
+          cp /tmp/videotok/tiktok_clone/pubspec.yaml .
+          cp -r /tmp/videotok/tiktok_clone/lib .
+
+      - name: Generate Android Project
+        run: flutter create --platforms=android --project-name videotok_app .
+
+      - name: Setup AdMob Test App ID
+        run: |
+          python3 -c "from pathlib import Path; import re; p=Path('android/app/src/main/AndroidManifest.xml'); s=p.read_text(); s=re.sub(r'(<application\b[^>]*>)', r'\1\n        <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"ca-app-pub-3940256099942544~3347511713\"/>', s, count=1); p.write_text(s)"
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoTok-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
